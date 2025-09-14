@@ -1,14 +1,47 @@
 #include "raylib.h"
 
+struct AnimData
+{
+    Rectangle rec;
+    Vector2 pos;
+    int frame;
+    float updateTime;
+    float runningTime;
+
+};
+
+bool isOnGround(AnimData data, int windowHeight)
+{
+    return data.pos.y >= windowHeight - data.rec.height;
+}
+
+AnimData updateAnimData(AnimData data, float deltaTime, int maxFrame)
+{
+    //Update Running Time
+    data.runningTime += deltaTime;
+    if (data.runningTime >= data.updateTime)
+    {
+        data.runningTime = 0.0;
+        //Update Animation Frame
+        data.rec.x = data.frame * data.rec.width;
+        data.frame++;
+        if (data.frame > maxFrame)
+        {
+            data.frame = 0;
+        }
+    }
+    return data;
+}
+
 int main()
 {
     //Screen Initalization
-    const int width = 800;
-    const int height = 450;
-    const int width_half = width/2;
+    int windowDimensions[2];
+    windowDimensions[0] = 800;
+    windowDimensions[1] = 450;
 
     //Creating Window                            
-    InitWindow(width, height, "Endless Runner 2D");
+    InitWindow(windowDimensions[0], windowDimensions[1], "Run and Dodge");
 
     //Character Jumping (pixels/sec)
     int velocity = 0;
@@ -17,32 +50,42 @@ int main()
     //Character acceletation due to gravity (pixels/sec)/sec
     int gravity = 1'500;
 
-    //Obstacle Drawing
+    //Obstacle Variables
     Texture2D Obstacle = LoadTexture("textures/12_nebula_spritesheet.png");
-    Rectangle ObstacleRec{0.0, 0.0, Obstacle.width/8, Obstacle.height/8}; //(x, y, width, height)
-    Vector2 ObstaclePos{width, height - ObstacleRec.height}; //(x, y)
+
+    const int sizeOfObstacleArray{6};
+    AnimData ObstacleArray[sizeOfObstacleArray] {};
+
+    for (int i = 0; i < sizeOfObstacleArray; i++)
+    {
+        ObstacleArray[i].rec.x = 0.0;
+        ObstacleArray[i].rec.y = 0.0;
+        ObstacleArray[i].rec.width = Obstacle.width/8;
+        ObstacleArray[i].rec.height = Obstacle.height/8;
+
+        ObstacleArray[i].pos.x = windowDimensions[0] + (i * 300);
+        ObstacleArray[i].pos.y = windowDimensions[1] - Obstacle.height/8;
+
+        ObstacleArray[i].frame = 0.0;
+
+        ObstacleArray[i].updateTime = 1.0/16.0;
+
+        ObstacleArray[i].runningTime = 0.0;
+    }
 
     //Obstacle X velocity (pixels/sec)
     int ObstacleVelocity{-200};
 
-    //Character Drawing
+    //Character Variables
     Texture2D scarfy = LoadTexture("textures/scarfy.png");
-    Rectangle scarfyRec{0.0, 0.0, scarfy.width/6, scarfy.height}; // (x, y, width, height)
-    Vector2 scarfyPos{width_half - scarfyRec.width/2, height -scarfyRec.height}; //(x, y)
-
-    //Obstacle Animation Frame
-    int ObstacleFrame;
-
-    //Amount of time before we update the character animation frame
-    const float ObstacleUpdateTime = 1.0/12.0;
-    float ObstacleRunningTime;
-
-    //Character Animation Frame
-    int frame;
-
-    //Amount of time before we update the character animation frame
-    const float updateTime = 1.0/12.0;
-    float runningTime;
+    AnimData scarfyData
+    {
+        {0.0, 0.0, scarfy.width/6, scarfy.height}, //Rectangle
+        {windowDimensions[0]/2 - (scarfy.width/6)/2, windowDimensions[1] - scarfy.height}, //Pos
+        0, //frame
+        1.0/12.0, //updateTime
+        0.0 //runningTime
+    };
     
     //Is Character in the air?
     bool isInAir;
@@ -60,7 +103,7 @@ int main()
         ClearBackground(WHITE);
 
         //Perform Ground Check
-        if (scarfyPos.y >= height - scarfyRec.height)
+        if (isOnGround(scarfyData, windowDimensions[1]))
         {
             //Character on ground
             velocity = 0;
@@ -79,49 +122,36 @@ int main()
             velocity += jumpVelocity;
         }
 
-        //Updating Obstacle Position
-        ObstaclePos.x += ObstacleVelocity * dT;
+        //Updating Obstacles Position
+        for ( int i = 0; i < sizeOfObstacleArray; i++)
+        {
+            ObstacleArray[i].pos.x += ObstacleVelocity * dT;
+        }
         
         //Updating Character Position
-        scarfyPos.y += velocity * dT;
+        scarfyData.pos.y += velocity * dT;
 
         //Updating Character Running Time
         if (!isInAir)
         {
-            runningTime += dT;
-            if (runningTime >= updateTime)
-            {
-                runningTime = 0.0;
-                //Update Character Animation Frame
-                scarfyRec.x = frame * scarfyRec.width;
-                frame++;
-                if (frame > 5)
-                {
-                    frame = 0;
-                }
-                
-            }
+            scarfyData = updateAnimData(scarfyData, dT, 5);
         }
 
-        // Updating Obstacle Running Time
-        ObstacleRunningTime += dT;
-        if (ObstacleRunningTime >= ObstacleUpdateTime)
+        // Updating Obstacles Running Time
+        for ( int i = 0; i < sizeOfObstacleArray; i++)
         {
-            ObstacleRunningTime = 0.0;
-            //Update Obstacle Animation Frame
-            ObstacleRec.x = ObstacleFrame * ObstacleRec.width;
-            ObstacleFrame++;
-            if (ObstacleFrame > 7)
-            {
-                ObstacleFrame = 0;
-            }
+            ObstacleArray[i] = updateAnimData(ObstacleArray[i], dT, 7);
         }
 
-        //Draw Obstacle
-        DrawTextureRec(Obstacle, ObstacleRec, ObstaclePos, WHITE);
+        //Draw Obstacles
+        for ( int i = 0; i < sizeOfObstacleArray; i++)
+        {
+            DrawTextureRec(Obstacle, ObstacleArray[i].rec, ObstacleArray[i].pos, WHITE);
+        }
+        
         
         //Draw Character
-        DrawTextureRec(scarfy, scarfyRec, scarfyPos, WHITE);
+        DrawTextureRec(scarfy, scarfyData.rec, scarfyData.pos, WHITE);
 
         //Game Logic Ends
         EndDrawing();
