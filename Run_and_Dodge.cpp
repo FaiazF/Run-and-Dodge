@@ -37,8 +37,8 @@ int main()
 {
     //Screen Initalization
     int windowDimensions[2];
-    windowDimensions[0] = 800;
-    windowDimensions[1] = 450;
+    windowDimensions[0] = 750;
+    windowDimensions[1] = 550;
 
     //Creating Window                            
     InitWindow(windowDimensions[0], windowDimensions[1], "Run and Dodge");
@@ -63,7 +63,7 @@ int main()
         ObstacleArray[i].rec.width = Obstacle.width/8;
         ObstacleArray[i].rec.height = Obstacle.height/8;
 
-        ObstacleArray[i].pos.x = windowDimensions[0] + (i * 300);
+        ObstacleArray[i].pos.x = windowDimensions[0] + (i * 600);
         ObstacleArray[i].pos.y = windowDimensions[1] - Obstacle.height/8;
 
         ObstacleArray[i].frame = 0.0;
@@ -90,6 +90,14 @@ int main()
     //Is Character in the air?
     bool isInAir;
 
+    //Background Texture
+    Texture2D background = LoadTexture("textures/far-buildings.png");
+    float bgX{};
+    Texture2D midground = LoadTexture("textures/back-buildings.png");
+    float mgX{};
+    Texture2D foreground = LoadTexture("textures/foreground.png");
+    float fgX{};
+
     //Limit FPS
     SetTargetFPS(60);
 
@@ -101,6 +109,41 @@ int main()
         //Game Logic Starts
         BeginDrawing();
         ClearBackground(WHITE);
+
+        //Background Scrolling
+        bgX -= 20 * dT;
+        if (bgX <= -background.width*3)
+        {
+            bgX = 0.0;
+        }
+
+        mgX -= 40 * dT;
+        if (mgX <= -midground.width*3)
+        {
+            mgX = 0.0;
+        }
+
+        fgX -= 80 * dT;
+        if (fgX <= -foreground.width*3)
+        {
+            fgX = 0.0;
+        }
+
+        //Drawing Background
+        Vector2 bg1Pos{ bgX, 0.0 };
+        DrawTextureEx(background, bg1Pos, 0.0, 3.0, WHITE);
+        Vector2 bg2Pos{ bgX + background.width*3, 0.0 };
+        DrawTextureEx(background, bg2Pos, 0.0, 3.0, WHITE);
+
+        Vector2 mg1Pos{ mgX, 0.0 };
+        DrawTextureEx(midground, mg1Pos, 0.0, 3.0, WHITE);
+        Vector2 mg2Pos{ mgX + midground.width*3, 0.0 };
+        DrawTextureEx(midground, mg2Pos, 0.0, 3.0, WHITE);
+
+        Vector2 fg1Pos{ fgX, 0.0 };
+        DrawTextureEx(foreground, fg1Pos, 0.0, 3.0, WHITE);
+        Vector2 fg2Pos{ fgX + foreground.width*3, 0.0 };
+        DrawTextureEx(foreground, fg2Pos, 0.0, 3.0, WHITE);
 
         //Perform Ground Check
         if (isOnGround(scarfyData, windowDimensions[1]))
@@ -158,5 +201,8 @@ int main()
     }
     UnloadTexture(scarfy);
     UnloadTexture(Obstacle);
+    UnloadTexture(background);
+    UnloadTexture(midground);
+    UnloadTexture(foreground);
     CloseWindow();
 }
