@@ -53,7 +53,7 @@ int main()
     //Obstacle Variables
     Texture2D Obstacle = LoadTexture("textures/12_nebula_spritesheet.png");
 
-    const int sizeOfObstacleArray{6};
+    const int sizeOfObstacleArray{20};
     AnimData ObstacleArray[sizeOfObstacleArray] {};
 
     for (int i = 0; i < sizeOfObstacleArray; i++)
@@ -72,6 +72,9 @@ int main()
 
         ObstacleArray[i].runningTime = 0.0;
     }
+
+    //Finish Line Location
+    float finishLine{ObstacleArray[sizeOfObstacleArray - 1].pos.x + 300};
 
     //Obstacle X velocity (pixels/sec)
     int ObstacleVelocity{-200};
@@ -98,6 +101,8 @@ int main()
     Texture2D foreground = LoadTexture("textures/foreground.png");
     float fgX{};
 
+    //Collision Variable
+    bool collisionDetection{false};
     //Limit FPS
     SetTargetFPS(60);
 
@@ -170,6 +175,9 @@ int main()
         {
             ObstacleArray[i].pos.x += ObstacleVelocity * dT;
         }
+
+        //Updating Finish Line
+        finishLine += ObstacleVelocity * dT;
         
         //Updating Character Position
         scarfyData.pos.y += velocity * dT;
@@ -186,15 +194,52 @@ int main()
             ObstacleArray[i] = updateAnimData(ObstacleArray[i], dT, 7);
         }
 
-        //Draw Obstacles
-        for ( int i = 0; i < sizeOfObstacleArray; i++)
+        //Checking Collision
+        for (AnimData Obstacle : ObstacleArray)
         {
-            DrawTextureRec(Obstacle, ObstacleArray[i].rec, ObstacleArray[i].pos, WHITE);
+            float padding{50};
+            Rectangle ObstacleRec
+            {
+                Obstacle.pos.x + padding, 
+                Obstacle.pos.y + padding, 
+                Obstacle.rec.width - 2*padding, 
+                Obstacle.rec.height - 2*padding
+            };
+            Rectangle scarfyRec
+            {
+                scarfyData.pos.x,
+                scarfyData.pos.y,
+                scarfyData.rec.width,
+                scarfyData.rec.height
+            };
+            if (CheckCollisionRecs(ObstacleRec, scarfyRec))
+            {
+                collisionDetection = true;
+            }
+        }
+
+        if(collisionDetection)
+        {
+            //Lose the game
+            DrawText("Game Over", windowDimensions[0]/3, windowDimensions[1]/2, 40, RED);
+        }
+        else if (scarfyData.pos.x >= finishLine)
+        {
+            //Win the game
+            DrawText("You win", windowDimensions[0]/3, windowDimensions[1]/2, 40, GREEN);
+        }
+        else
+        {
+            //Draw Obstacles
+            for ( int i = 0; i < sizeOfObstacleArray; i++)
+            {
+                DrawTextureRec(Obstacle, ObstacleArray[i].rec, ObstacleArray[i].pos, WHITE);
+            }
+            
+            //Draw Character
+            DrawTextureRec(scarfy, scarfyData.rec, scarfyData.pos, WHITE);
         }
         
-        
-        //Draw Character
-        DrawTextureRec(scarfy, scarfyData.rec, scarfyData.pos, WHITE);
 
         //Game Logic Ends
         EndDrawing();
